@@ -1,0 +1,16 @@
+{
+  "name": "EcoTrace Digital Carbon Footprint PWA",
+  "short_name": "EcoTrace",
+  "description": "Platform Digital Pelacak, Visualisasi, dan Pengurangan Jejak Karbon Personal Komunitas Mahasiswa Kampus IPB",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
