@@ -7,7 +7,6 @@ import { calculateDashboardMetrics, getStoredActivities, deleteActivity } from '
 import { EMISSION_FACTORS } from '@/lib/emission-factors';
 import { MockActivity } from '@/lib/mock-data';
 import { QuickLoggerBar } from '@/components/quick-logger-bar';
-import { EcoGuide } from '@/components/eco-guide';
 import {
   TrendingDown,
   TrendingUp,
@@ -372,9 +371,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Floating Interactive Eco Assistant */}
-      <EcoGuide />
     </div>
   );
 }

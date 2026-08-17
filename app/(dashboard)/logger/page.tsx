@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { EMISSION_FACTORS, calculateCO2 } from '@/lib/emission-factors';
 import { addActivity } from '@/lib/storage';
 import { useAuth } from '@/hooks/useAuth';
-import { EcoGuide } from '@/components/eco-guide';
 import { CsvImportModal } from '@/components/csv-import-modal';
 import Link from 'next/link';
 import {
@@ -365,9 +364,6 @@ export default function CarbonLoggerPage() {
         userId={user ? user.id : 'user-1'}
         onImportSuccess={handleImportSuccess}
       />
-
-      {/* Floating Interactive Eco Assistant */}
-      <EcoGuide />
     </div>
   );
 }

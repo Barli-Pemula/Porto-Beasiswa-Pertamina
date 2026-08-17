@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { Navbar } from '@/components/navbar';
 import { BottomNav } from '@/components/bottom-nav';
+import { EcoGuide } from '@/components/eco-guide';
 
 export const metadata: Metadata = {
   title: 'EcoTrace | Pelacak Jejak Karbon Kampus',
@@ -22,6 +23,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1 pb-20 lg:pb-8">{children}</main>
           <BottomNav />
+          <EcoGuide />
         </Providers>
       </body>
     </html>
