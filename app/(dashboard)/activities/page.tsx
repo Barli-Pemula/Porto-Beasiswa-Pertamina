@@ -5,14 +5,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { getStoredActivities, deleteActivity } from '@/lib/storage';
 import { EMISSION_FACTORS } from '@/lib/emission-factors';
 import { MockActivity } from '@/lib/mock-data';
+import { exportActivitiesToExcel, exportActivitiesToCSV } from '@/lib/excel-utils';
+import { CsvImportModal } from '@/components/csv-import-modal';
 import {
   History,
   Search,
   Filter,
   Download,
+  Upload,
   Trash2,
   Calendar,
   FileSpreadsheet,
+  FileText,
+  CheckCircle2,
+  ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 
 export default function ActivityHistoryPage() {
@@ -20,6 +27,9 @@ export default function ActivityHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importNotification, setImportNotification] = useState<{ count: number; totalCO2: number } | null>(null);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
 
   const [activities, setActivities] = useState(() => getStoredActivities());
 
@@ -54,26 +64,22 @@ export default function ActivityHistoryPage() {
     setActivities(getStoredActivities());
   };
 
-  const handleExportCSV = () => {
-    const headers = ['ID', 'Category', 'ActivityType', 'Value', 'Unit', 'CO2Equivalent_kg', 'Timestamp', 'Notes'];
-    const rows = filteredList.map((a) => [
-      a.id,
-      a.category,
-      a.activityType,
-      a.value,
-      a.unit,
-      a.co2Equivalent,
-      a.timestamp,
-      `"${(a.notes || '').replace(/"/g, '""')}"`,
-    ]);
+  const handleExportExcel = () => {
+    exportActivitiesToExcel(filteredList);
+    setExportDropdownOpen(false);
+  };
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ecotrace_riwayat_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
+  const handleExportCSV = () => {
+    exportActivitiesToCSV(filteredList);
+    setExportDropdownOpen(false);
+  };
+
+  const handleImportSuccess = (count: number, totalCO2: number) => {
+    setActivities(getStoredActivities());
+    setImportNotification({ count, totalCO2 });
+    setTimeout(() => {
+      setImportNotification(null);
+    }, 5000);
   };
 
   const totalCO2Filtered = filteredList.reduce((acc, a) => acc + a.co2Equivalent, 0);
@@ -81,7 +87,7 @@ export default function ActivityHistoryPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <History className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
@@ -92,14 +98,85 @@ export default function ActivityHistoryPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-2xl flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-          <span>Ekspor ke CSV</span>
-        </button>
+        {/* Action Buttons: Import & Export */}
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          {/* Import Button */}
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold rounded-2xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-emerald-600" />
+            <span>Impor Data (Excel / CSV)</span>
+          </button>
+
+          {/* Export Dropdown Group */}
+          <div className="relative">
+            <button
+              onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-2xl flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Ekspor Tabel</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+            </button>
+
+            {exportDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setExportDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Format Spreadsheet
+                  </div>
+                  <button
+                    onClick={handleExportExcel}
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <p className="font-semibold">Excel (.xlsx)</p>
+                      <p className="text-[10px] text-slate-400">Tabel rapi & formula siap pakai (Rekomendasi)</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-slate-500" />
+                    <div>
+                      <p className="font-semibold">CSV (.csv)</p>
+                      <p className="text-[10px] text-slate-400">Kompatibel Excel dengan UTF-8 BOM</p>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Success Notification after Import */}
+      {importNotification && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-xs sm:text-sm">Impor Aktivitas Berhasil Disimpan!</p>
+              <p className="text-[11px] sm:text-xs text-emerald-700">
+                Berhasil menambahkan <strong>{importNotification.count}</strong> aktivitas dengan total estimasi emisi <strong>+{importNotification.totalCO2.toFixed(2)} kg CO₂e</strong> ke akun Anda.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setImportNotification(null)}
+            className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
 
       {/* Filter & Search Controls */}
       <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl shadow-slate-200/60 border border-slate-100 space-y-3.5">
@@ -155,10 +232,19 @@ export default function ActivityHistoryPage() {
       {/* Table Section */}
       <div className="bg-white rounded-3xl p-4 sm:p-8 shadow-xl shadow-slate-200/60 border border-slate-100">
         {filteredList.length === 0 ? (
-          <div className="text-center py-10 space-y-2">
+          <div className="text-center py-10 space-y-3">
             <Calendar className="w-8 h-8 text-slate-300 mx-auto" />
             <p className="text-xs sm:text-sm font-bold text-slate-800">Tidak ada data aktivitas yang sesuai</p>
-            <p className="text-xs text-slate-500">Coba ubah kata kunci pencarian atau filter kategori/waktu di atas.</p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Coba ubah kata kunci pencarian, atau impor catatan aktivitas historis Anda dari file Excel / CSV.
+            </p>
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl font-semibold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer mt-1"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Impor Data Sekarang</span>
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-2 sm:mx-0">
@@ -224,6 +310,14 @@ export default function ActivityHistoryPage() {
           </div>
         )}
       </div>
+
+      {/* CSV & Excel Import Modal */}
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        userId={userId}
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   );
 }

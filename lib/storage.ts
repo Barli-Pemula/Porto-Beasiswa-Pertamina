@@ -95,6 +95,27 @@ export function addActivity(activity: Omit<MockActivity, 'id'>): MockActivity {
   return newActivity;
 }
 
+export function addMultipleActivities(activities: Array<Omit<MockActivity, 'id'>>): MockActivity[] {
+  const baseTimestamp = Date.now();
+  const createdActivities: MockActivity[] = activities.map((act, index) => ({
+    ...act,
+    id: `act-import-${baseTimestamp}-${index + 1}`,
+  }));
+
+  if (isClient) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
+      const custom = safeJSONParse<MockActivity[]>(raw, []);
+      // Add all new activities to front
+      const combined = [...createdActivities, ...custom];
+      localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(combined));
+    } catch (e) {
+      console.error('Failed to save imported activities', e);
+    }
+  }
+  return createdActivities;
+}
+
 export function deleteActivity(id: string): boolean {
   if (!isClient) return false;
   try {

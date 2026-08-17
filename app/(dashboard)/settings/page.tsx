@@ -4,17 +4,19 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { getStoredActivities } from '@/lib/storage';
+import { exportActivitiesToExcel, exportActivitiesToCSV } from '@/lib/excel-utils';
 import {
   Settings,
   Bell,
   Globe,
   Download,
+  FileSpreadsheet,
   LogOut,
   CheckCircle2,
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
 
   const [emailNotif, setEmailNotif] = useState(true);
@@ -24,7 +26,7 @@ export default function SettingsPage() {
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const handleExportData = () => {
+  const handleExportJSON = () => {
     const activities = getStoredActivities();
     const jsonStr = JSON.stringify(activities, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -33,6 +35,12 @@ export default function SettingsPage() {
     a.href = url;
     a.download = `ecotrace_export_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
+  };
+
+  const handleExportExcel = () => {
+    const activities = getStoredActivities();
+    const userActivities = activities.filter((a) => a.userId === (user ? user.id : 'user-1'));
+    exportActivitiesToExcel(userActivities);
   };
 
   const handleSaveSettings = () => {
@@ -165,13 +173,21 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap">
           <button
-            onClick={handleExportData}
+            onClick={handleExportExcel}
+            className="w-full sm:w-auto px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Ekspor ke Excel (.xlsx)</span>
+          </button>
+
+          <button
+            onClick={handleExportJSON}
             className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-slate-600" />
-            <span>Ekspor Semua Data (JSON)</span>
+            <span>Ekspor Format JSON</span>
           </button>
 
           <button
@@ -179,7 +195,7 @@ export default function SettingsPage() {
               logout();
               router.push('/login');
             }}
-            className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer sm:ml-auto"
           >
             <LogOut className="w-4 h-4" />
             <span>Keluar Dari Aplikasi</span>

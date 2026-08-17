@@ -5,6 +5,8 @@ import { EMISSION_FACTORS, calculateCO2 } from '@/lib/emission-factors';
 import { addActivity } from '@/lib/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { EcoGuide } from '@/components/eco-guide';
+import { CsvImportModal } from '@/components/csv-import-modal';
+import Link from 'next/link';
 import {
   Car,
   Zap,
@@ -17,6 +19,8 @@ import {
   Info,
   TreePine,
   Lightbulb,
+  FileSpreadsheet,
+  Upload,
 } from 'lucide-react';
 
 type CategoryType = 'transport' | 'energy' | 'food' | 'waste';
@@ -28,6 +32,8 @@ export default function CarbonLoggerPage() {
   const [valueInput, setValueInput] = useState<number>(5);
   const [notesInput, setNotesInput] = useState<string>('');
   const [submittedData, setSubmittedData] = useState<{ co2: number; label: string } | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importNotification, setImportNotification] = useState<{ count: number; totalCO2: number } | null>(null);
 
   const availableFactors = Object.values(EMISSION_FACTORS).filter(
     (item) => item.category === selectedCategory
@@ -84,6 +90,13 @@ export default function CarbonLoggerPage() {
     setNotesInput('');
   };
 
+  const handleImportSuccess = (count: number, totalCO2: number) => {
+    setImportNotification({ count, totalCO2 });
+    setTimeout(() => {
+      setImportNotification(null);
+    }, 5000);
+  };
+
   const categoriesConfig = [
     {
       id: 'transport',
@@ -114,14 +127,44 @@ export default function CarbonLoggerPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="space-y-1 text-left">
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          Catat Emisi Karbon Harian
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Pilih aktivitas harian Anda. Form ini dirancang agar mudah digunakan oleh siapa saja dalam 30 detik!
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1 text-left">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            Catat Emisi Karbon Harian
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500">
+            Pilih aktivitas harian Anda. Form ini dirancang agar mudah digunakan oleh siapa saja dalam 30 detik!
+          </p>
+        </div>
+
+        <button
+          onClick={() => setIsImportModalOpen(true)}
+          className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-2xl flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+        >
+          <Upload className="w-4 h-4 text-emerald-600" />
+          <span>Impor Banyak Data (Excel/CSV)</span>
+        </button>
       </div>
+
+      {importNotification && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-xs sm:text-sm">Batch Import Berhasil!</p>
+              <p className="text-[11px] sm:text-xs text-emerald-700">
+                Berhasil mengimpor <strong>{importNotification.count}</strong> data aktivitas (total <strong>+{importNotification.totalCO2.toFixed(2)} kg CO₂e</strong>).
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/activities"
+            className="text-xs font-bold text-emerald-800 underline hover:text-emerald-950"
+          >
+            Lihat di Riwayat
+          </Link>
+        </div>
+      )}
 
       {submittedData ? (
         /* Success Celebration State */
@@ -155,44 +198,43 @@ export default function CarbonLoggerPage() {
               <Plus className="w-4 h-4" />
               Catat Aktivitas Lain
             </button>
-            <a
+            <Link
               href="/dashboard"
               className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors text-center"
             >
-              Lihat Dashboard
-            </a>
+              Kembali ke Dashboard
+            </Link>
           </div>
         </div>
       ) : (
-        /* Form Card */
-        <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-200/60 border border-slate-100 space-y-6">
+        /* Form State */
+        <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-200/60 border border-slate-100 space-y-6 sm:space-y-8">
           {/* Step 1: Category Selector */}
           <div className="space-y-2.5">
-            <label className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500">
-              1. Pilih Kategori Aktivitas
-            </label>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center">1</span>
+                Pilih Kategori Emisi
+              </label>
+              <span className="text-[11px] text-slate-400">4 Kategori Utama</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {categoriesConfig.map((cat) => {
-                const Icon = cat.icon;
+                const IconComponent = cat.icon;
                 const isSelected = selectedCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => handleCategoryChange(cat.id as CategoryType)}
-                    className={`p-3.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer text-center ${
+                    className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
                       isSelected
-                        ? cat.activeBg + ' shadow-md scale-102 font-bold'
-                        : 'border-slate-100 bg-slate-50/50 hover:bg-slate-100/80 text-slate-600'
+                        ? `${cat.activeBg} font-bold shadow-md shadow-slate-100 scale-[1.02]`
+                        : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-100 text-slate-600'
                     }`}
                   >
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        isSelected ? 'bg-white shadow-xs' : 'bg-slate-200/60'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
+                    <IconComponent className="w-5 h-5" />
                     <span className="text-xs">{cat.label}</span>
                   </button>
                 );
@@ -200,83 +242,76 @@ export default function CarbonLoggerPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Step 2: Activity Type & Slider Value */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Activity Type Dropdown */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                  2. Jenis Aktivitas Spesifik
-                </label>
-                <select
-                  value={selectedTypeId}
-                  onChange={(e) => handleTypeChange(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all cursor-pointer"
-                >
-                  {availableFactors.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.icon} {item.label}
-                    </option>
-                  ))}
-                </select>
-                {currentFactor && (
-                  <p className="text-[11px] text-slate-500 flex items-start gap-1 mt-1">
-                    <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-                    <span>{currentFactor.description}</span>
-                  </p>
-                )}
-              </div>
+          {/* Step 2: Activity Types Option List */}
+          <div className="space-y-2.5">
+            <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center">2</span>
+              Pilih Jenis Aktivitas
+            </label>
 
-              {/* Slider + Numeric Input */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                    3. Berapa Banyak / Berapa Jam?
-                  </label>
-                  <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                    {valueInput} {currentFactor?.unit}
-                  </span>
-                </div>
-
-                <div className="space-y-2.5 pt-1">
-                  <input
-                    type="range"
-                    min="0.5"
-                    max={selectedCategory === 'transport' ? '50' : '10'}
-                    step="0.5"
-                    value={valueInput}
-                    onChange={(e) => setValueInput(parseFloat(e.target.value) || 1)}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                  />
-
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      value={valueInput}
-                      onChange={(e) => setValueInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
-                    />
-                    <div className="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-center min-w-[65px]">
-                      {currentFactor?.unit}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {availableFactors.map((item) => {
+                const isSelected = selectedTypeId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleTypeChange(item.id)}
+                    className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/60 shadow-sm'
+                        : 'border-slate-200/80 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-xl flex-shrink-0">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs ${isSelected ? 'font-bold text-emerald-900' : 'font-semibold text-slate-800'}`}>
+                        {item.label}
+                      </p>
+                      <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.description}</p>
                     </div>
-                  </div>
-                </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Step 3: Input Quantity & Live Calculation Box */}
+          <form onSubmit={handleSubmit} className="space-y-5 pt-2 border-t border-slate-100">
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center">3</span>
+                Jumlah Pemakaian / Durasi ({currentFactor?.unit})
+              </label>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="any"
+                  min="0.1"
+                  value={valueInput}
+                  onChange={(e) => setValueInput(parseFloat(e.target.value) || 0)}
+                  className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  placeholder="0"
+                  required
+                />
+                <span className="px-4 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs uppercase tracking-wider">
+                  {currentFactor?.unit}
+                </span>
               </div>
             </div>
 
-            {/* Estimated CO2 & Real-World Impact Metaphor */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-200/60 space-y-3">
+            {/* Live Instant Carbon Calculation Card */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold">
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase">Estimasi Jejak Karbon</p>
-                    <p className="text-xl sm:text-2xl font-black text-slate-900">
-                      {calculatedCO2} <span className="text-xs font-normal text-slate-500">kg CO₂e</span>
+                    <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider">
+                      Estimasi Emisi Karbon Terhitung
+                    </p>
+                    <p className="text-lg sm:text-xl font-extrabold text-emerald-950">
+                      {calculatedCO2} <span className="text-xs font-semibold text-emerald-700">kg CO₂e</span>
                     </p>
                   </div>
                 </div>
@@ -322,6 +357,14 @@ export default function CarbonLoggerPage() {
           </form>
         </div>
       )}
+
+      {/* Csv & Excel Import Modal */}
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        userId={user ? user.id : 'user-1'}
+        onImportSuccess={handleImportSuccess}
+      />
 
       {/* Floating Interactive Eco Assistant */}
       <EcoGuide />
